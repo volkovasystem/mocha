@@ -241,11 +241,29 @@ function toJSONRunResult(result) {
 /**
  * Creates arguments loading a default fixture if none provided
  *
+ * - The `--no-color` arg is always used (color output complicates testing `STDOUT`)
+ * - Unless `--bail` or `--no-bail` is set, use `--no-bail`.  This enables using
+ *   `--bail` (if desired) from the command-line when running our integration
+ *   test suites without stepping on the toes of subprocesses.
+ * - Unless `--parallel` or `--no-parallel` is set, use `--no-parallel`.  We
+ *   assume the test suite is _already_ running in parallel--and there's no point
+ *   in trying to run a single test fixture in parallel.
+ * - The {@link DEFAULT_FIXTURE} file is used if no arguments are provided.
+ *
  * @param {string[]|*} [args] - Arguments to `spawn`
  * @returns string[]
  */
 function defaultArgs(args) {
-  return !args || !args.length ? ['--file', DEFAULT_FIXTURE] : args;
+  var newArgs = (!args || !args.length ? [DEFAULT_FIXTURE] : args).concat([
+    '--no-color'
+  ]);
+  if (!newArgs.some(arg => /--(no-)?bail/.test(arg))) {
+    newArgs.push('--no-bail');
+  }
+  if (!newArgs.some(arg => /--(no-)?parallel/.test(arg))) {
+    newArgs.push('--no-parallel');
+  }
+  return newArgs;
 }
 
 function invokeMocha(args, fn, opts) {

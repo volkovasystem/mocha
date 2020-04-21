@@ -10,10 +10,19 @@ const path = require('path');
  * @returns {string} Command string to be executed by nps.
  */
 function test(testName, mochaParams) {
-  const coverageCommand = `nyc --no-clean --report-dir coverage/reports/${testName}`;
+  let coverageCommand = `nyc --no-clean --report-dir coverage/reports/${testName}`;
   const mochaCommand = `node ${path.join('bin', 'mocha')}`; // Include 'node' and path.join for Windows compatibility
-  if (process.env.CI && !/^only-/.test(testName)) {
-    mochaParams += ' --forbid-only';
+  if (process.env.CI) {
+    // suppress coverage summaries in CI to reduce noise
+    coverageCommand += ' --reporter=json';
+    if (!/^only-/.test(testName)) {
+      mochaParams += ' --forbid-only';
+    }
+    mochaParams += ' --color';
+  }
+  // this may _actually_ be supported in the future
+  if (process.env.MOCHA_PARALLEL === '0') {
+    mochaParams += ' --no-parallel';
   }
   return `${
     process.env.COVERAGE ? coverageCommand : ''
@@ -23,7 +32,7 @@ function test(testName, mochaParams) {
 module.exports = {
   scripts: {
     build: {
-      script: `browserify -e browser-entry.js --plugin ./scripts/dedefine --ignore './lib/cli/*.js' --ignore "./lib/esm-utils.js" --ignore 'chokidar' --ignore 'fs' --ignore 'glob' --ignore 'path' --ignore 'supports-color' -o mocha.js`,
+      script: `browserify -e browser-entry.js --plugin ./scripts/dedefine --ignore './lib/cli/*.js' --ignore "./lib/esm-utils.js" --ignore 'chokidar' --ignore 'fs' --ignore 'glob' --ignore 'path' --ignore 'supports-color' --ignore './lib/buffered-runner.js' --ignore './lib/serializer.js' --ignore './lib/reporters/buffered.js' --ignore './lib/worker.js' -o mocha.js`,
       description: 'Build browser bundle'
     },
     lint: {
