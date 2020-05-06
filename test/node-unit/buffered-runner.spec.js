@@ -15,8 +15,8 @@ const {createSandbox} = require('sinon');
 describe('buffered-runner', function() {
   describe('BufferedRunner', function() {
     let sandbox;
-    let pool;
     let run;
+    let WorkerPool;
     let terminate;
     let BufferedRunner;
     let suite;
@@ -32,22 +32,21 @@ describe('buffered-runner', function() {
       // tests will want to further define the behavior of these.
       run = sandbox.stub();
       terminate = sandbox.stub();
-
-      pool = sandbox.stub().returns({
-        proxy: sandbox.stub().resolves({
-          run
-        }),
-        terminate,
-        stats: sandbox.stub().returns({})
-      });
+      WorkerPool = {
+        create: sandbox.stub().returns({
+          run,
+          terminate,
+          stats: sandbox.stub().returns({})
+        })
+      };
       BufferedRunner = rewiremock.proxy(BUFFERED_RUNNER_PATH, r => ({
-        workerpool: {
-          pool
+        '../../lib/pool': {
+          WorkerPool
         },
         os: {
           cpus: sandbox.stub().callsFake(() => new Array(cpuCount))
         },
-        [require.resolve('../../lib/utils')]: r.with({warn}).callThrough()
+        '../../lib/utils': r.with({warn}).callThrough()
       }));
     });
 
@@ -144,93 +143,6 @@ describe('buffered-runner', function() {
                 options
               }
             );
-          });
-        });
-
-        describe('when not provided a max job count', function() {
-          it('should use a max job count based on CPU cores', function(done) {
-            runner.run(
-              () => {
-                expect(pool, 'to have a call satisfying', {
-                  args: [
-                    expect.it('to be a', 'string'),
-                    {
-                      maxWorkers: Math.max(cpuCount - 1, 1)
-                    }
-                  ]
-                });
-                done();
-              },
-              {files: [], options: {}}
-            );
-          });
-        });
-
-        describe('when provided a max job count', function() {
-          beforeEach(function() {
-            cpuCount = 8;
-          });
-
-          it('should use the provided max count', function(done) {
-            runner.run(
-              () => {
-                expect(pool, 'to have a call satisfying', {
-                  args: [
-                    expect.it('to be a', 'string'),
-                    {
-                      maxWorkers: 4
-                    }
-                  ]
-                });
-                done();
-              },
-              {
-                files: [],
-                options: {
-                  jobs: 4
-                }
-              }
-            );
-          });
-
-          describe('when the max job count exceeds the CPU count', function() {
-            it('should warn', function(done) {
-              run.resolves({failureCount: 0, events: []});
-              runner.run(
-                () => {
-                  expect(warn, 'to have a call satisfying', [
-                    /only enough cores available/
-                  ]);
-                  done();
-                },
-                {
-                  files: [],
-                  options: {jobs: 16}
-                }
-              );
-            });
-          });
-
-          describe('when there are not enough CPU cores', function() {
-            beforeEach(function() {
-              cpuCount = 2;
-            });
-
-            it('should warn', function(done) {
-              run.resolves({failureCount: 0, events: []});
-              runner.run(
-                () => {
-                  expect(warn, 'to have a call satisfying', [
-                    /avoid --parallel on this machine/
-                  ]);
-                  done();
-                },
-                {
-                  files: [],
-                  options: {jobs: 4}
-                }
-              );
-            });
           });
         });
 

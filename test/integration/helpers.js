@@ -392,7 +392,9 @@ function resolveFixturePath(fixture) {
   if (path.extname(fixture) !== '.js' && path.extname(fixture) !== '.mjs') {
     fixture += '.fixture.js';
   }
-  return path.join('test', 'integration', 'fixtures', fixture);
+  return path.isAbsolute(fixture)
+    ? fixture
+    : path.join('test', 'integration', 'fixtures', fixture);
 }
 
 /**

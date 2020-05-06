@@ -67,6 +67,7 @@
     "ms": "2.1.2",
     "object.assign": "4.1.0",
     "promise.allsettled": "1.0.2",
+    "serialize-javascript": "3.0.0",
     "strip-json-comments": "3.0.1",
     "supports-color": "7.1.0",
     "which": "2.0.2",
@@ -164,7 +165,8 @@
     "./lib/serializer.js": false,
     "./lib/reporters/buffered.js": false,
     "./lib/buffered-reporter.js": false,
-    "./lib/worker.js": false
+    "./lib/worker.js": false,
+    "./lib/pool.js": false
   },
   "prettier": {
     "singleQuote": true,

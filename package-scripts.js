@@ -32,7 +32,7 @@ function test(testName, mochaParams) {
 module.exports = {
   scripts: {
     build: {
-      script: `browserify -e browser-entry.js --plugin ./scripts/dedefine --ignore './lib/cli/*.js' --ignore "./lib/esm-utils.js" --ignore 'chokidar' --ignore 'fs' --ignore 'glob' --ignore 'path' --ignore 'supports-color' --ignore './lib/buffered-runner.js' --ignore './lib/serializer.js' --ignore './lib/reporters/buffered.js' --ignore './lib/worker.js' -o mocha.js`,
+      script: `browserify -e browser-entry.js --plugin ./scripts/dedefine --ignore './lib/cli/*.js' --ignore "./lib/esm-utils.js" --ignore 'chokidar' --ignore 'fs' --ignore 'glob' --ignore 'path' --ignore 'supports-color' --ignore './lib/buffered-runner.js' --ignore './lib/serializer.js' --ignore './lib/reporters/buffered.js' --ignore './lib/worker.js' --ignore './lib/pool.js' -o mocha.js`,
       description: 'Build browser bundle'
     },
     lint: {

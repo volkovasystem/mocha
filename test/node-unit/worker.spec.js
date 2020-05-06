@@ -1,5 +1,6 @@
 'use strict';
 
+const serializeJavascript = require('serialize-javascript');
 const {SerializableWorkerResult} = require('../../lib/serializer');
 const rewiremock = require('rewiremock/node');
 const {createSandbox} = require('sinon');
@@ -17,7 +18,7 @@ describe('worker', function() {
     sandbox.spy(process, 'removeAllListeners');
   });
 
-  describe('when run as main "thread"', function() {
+  describe('when run as main process', function() {
     it('should throw', function() {
       expect(() => {
         rewiremock.proxy(WORKER_PATH, {
@@ -30,7 +31,7 @@ describe('worker', function() {
     });
   });
 
-  describe('when run as "worker thread"', function() {
+  describe('when run as worker process', function() {
     class MockMocha {}
     let serializer;
     let runHelpers;
@@ -112,15 +113,18 @@ describe('worker', function() {
           });
 
           it('should handle "--require"', async function() {
-            await worker.run('some-file.js', {require: 'foo'});
+            await worker.run(
+              'some-file.js',
+              serializeJavascript({require: 'foo'})
+            );
             expect(runHelpers.handleRequires, 'to have a call satisfying', [
               'foo'
             ]).and('was called once');
           });
 
           it('should handle "--ui"', async function() {
-            const argv = {};
-            await worker.run('some-file.js', argv);
+            const argv = {foo: 'bar'};
+            await worker.run('some-file.js', serializeJavascript(argv));
 
             expect(runHelpers.validatePlugin, 'to have a call satisfying', [
               argv,

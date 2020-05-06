@@ -41,6 +41,7 @@ module.exports = config => {
           .ignore('./lib/reporters/buffered.js')
           .ignore('./lib/serializer.js')
           .ignore('./lib/worker.js')
+          .ignore('./lib/pool.js')
           .on('bundled', (err, content) => {
             if (err) {
               throw err;
