@@ -116,6 +116,7 @@
     "markdown-magic-package-json": "^2.0.1",
     "markdown-toc": "^1.2.0",
     "markdownlint-cli": "^0.22.0",
+    "needle": "^2.4.1",
     "nps": "^5.9.12",
     "nyc": "^15.0.0",
     "prettier": "^1.19.1",

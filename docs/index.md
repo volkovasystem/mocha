@@ -822,7 +822,7 @@ Mocha supports the `err.expected` and `err.actual` properties of any thrown `Ass
 
 <!-- AUTO-GENERATED-CONTENT:START (usage:executable=bin/mocha) -->
 
-```text
+```
 
 mocha [spec..]
 
