@@ -9,12 +9,17 @@ const WORKER_PATH = require.resolve('../../lib/worker.js');
 
 describe('worker', function() {
   let worker;
-  let workerpoolWorker;
   let sandbox;
+  let stubs;
 
   beforeEach(function() {
     sandbox = createSandbox();
-    workerpoolWorker = sandbox.stub();
+    stubs = {
+      workerpool: {
+        isMainThread: false,
+        worker: sandbox.stub()
+      }
+    };
     sandbox.spy(process, 'removeAllListeners');
   });
 
@@ -24,7 +29,7 @@ describe('worker', function() {
         rewiremock.proxy(WORKER_PATH, {
           workerpool: {
             isMainThread: true,
-            worker: workerpoolWorker
+            worker: stubs.workerpool.worker
           }
         });
       }, 'to throw');
@@ -32,41 +37,40 @@ describe('worker', function() {
   });
 
   describe('when run as worker process', function() {
-    class MockMocha {}
-    let serializer;
-    let runHelpers;
+    let mocha;
 
     beforeEach(function() {
-      MockMocha.prototype.addFile = sandbox.stub().returnsThis();
-      MockMocha.prototype.loadFilesAsync = sandbox.stub();
-      MockMocha.prototype.run = sandbox.stub();
-      MockMocha.interfaces = {
-        bdd: sandbox.stub()
+      mocha = {
+        addFile: sandbox.stub().returnsThis(),
+        loadFilesAsync: sandbox.stub().resolves(),
+        run: sandbox.stub().callsArgAsync(0),
+        unloadFiles: sandbox.stub().returnsThis()
       };
+      stubs.Mocha = Object.assign(sandbox.stub().returns(mocha), {
+        bdd: sandbox.stub(),
+        interfaces: {}
+      });
 
-      serializer = {
+      stubs.serializer = {
         serialize: sandbox.stub()
       };
 
-      runHelpers = {
+      stubs.runHelpers = {
         handleRequires: sandbox.stub(),
         validatePlugin: sandbox.stub(),
         loadRootHooks: sandbox.stub().resolves()
       };
 
       worker = rewiremock.proxy(WORKER_PATH, {
-        workerpool: {
-          isMainThread: false,
-          worker: workerpoolWorker
-        },
-        '../../lib/mocha': MockMocha,
-        '../../lib/serializer': serializer,
-        '../../lib/cli/run-helpers': runHelpers
+        workerpool: stubs.workerpool,
+        '../../lib/mocha': stubs.Mocha,
+        '../../lib/serializer': stubs.serializer,
+        '../../lib/cli/run-helpers': stubs.runHelpers
       });
     });
 
     it('should register itself with workerpool', function() {
-      expect(workerpoolWorker, 'to have a call satisfying', [
+      expect(stubs.workerpool.worker, 'to have a call satisfying', [
         {run: worker.run}
       ]);
     });
@@ -95,7 +99,7 @@ describe('worker', function() {
 
         describe('when the file at "filepath" argument is unloadable', function() {
           it('should reject', async function() {
-            MockMocha.prototype.loadFilesAsync.rejects();
+            mocha.loadFilesAsync.rejects();
             return expect(
               () => worker.run('some-non-existent-file.js'),
               'to be rejected'
@@ -108,8 +112,8 @@ describe('worker', function() {
           beforeEach(function() {
             result = SerializableWorkerResult.create();
 
-            MockMocha.prototype.loadFilesAsync.resolves();
-            MockMocha.prototype.run.yields(result);
+            mocha.loadFilesAsync.resolves();
+            mocha.run.yields(result);
           });
 
           it('should handle "--require"', async function() {
@@ -117,25 +121,27 @@ describe('worker', function() {
               'some-file.js',
               serializeJavascript({require: 'foo'})
             );
-            expect(runHelpers.handleRequires, 'to have a call satisfying', [
-              'foo'
-            ]).and('was called once');
+            expect(
+              stubs.runHelpers.handleRequires,
+              'to have a call satisfying',
+              ['foo']
+            ).and('was called once');
           });
 
           it('should handle "--ui"', async function() {
             const argv = {foo: 'bar'};
             await worker.run('some-file.js', serializeJavascript(argv));
 
-            expect(runHelpers.validatePlugin, 'to have a call satisfying', [
-              argv,
-              'ui',
-              MockMocha.interfaces
-            ]).and('was called once');
+            expect(
+              stubs.runHelpers.validatePlugin,
+              'to have a call satisfying',
+              [argv, 'ui', stubs.Mocha.interfaces]
+            ).and('was called once');
           });
 
           it('should call Mocha#run', async function() {
             await worker.run('some-file.js');
-            expect(MockMocha.prototype.run, 'was called once');
+            expect(mocha.run, 'was called once');
           });
 
           it('should remove all uncaughtException listeners', async function() {
@@ -147,7 +153,7 @@ describe('worker', function() {
 
           describe('when serialization succeeds', function() {
             beforeEach(function() {
-              serializer.serialize.returnsArg(0);
+              stubs.serializer.serialize.returnsArg(0);
             });
 
             it('should resolve with a SerializedWorkerResult', async function() {
@@ -161,7 +167,7 @@ describe('worker', function() {
 
           describe('when serialization fails', function() {
             beforeEach(function() {
-              serializer.serialize.throws();
+              stubs.serializer.serialize.throws();
             });
 
             it('should reject', async function() {
@@ -174,7 +180,7 @@ describe('worker', function() {
               await worker.run('some-file.js');
               await worker.run('some-other-file.js');
 
-              expect(runHelpers, 'to satisfy', {
+              expect(stubs.runHelpers, 'to satisfy', {
                 handleRequires: expect.it('was called once'),
                 validatePlugin: expect.it('was called once')
               });
