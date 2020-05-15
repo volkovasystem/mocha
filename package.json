@@ -1,5 +1,5 @@
 {
-  "name": "mocha",
+  "name": "@volkovasystem/mocha",
   "version": "7.1.2",
   "description": "simple, flexible, fun test framework",
   "keywords": [
